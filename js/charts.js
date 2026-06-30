@@ -6,6 +6,11 @@
  * recreated) so Chart.js's built-in animations play on every data change.
  * Requires Chart.js to be loaded globally via the CDN <script> tag in
  * index.html (window.Chart).
+ *
+ * NOTE: Charts are initially created while the Analytics view may still be
+ * hidden (display: none), which means their canvases report 0x0 dimensions
+ * at creation time and render blank. Call resizeAllCharts() right after the
+ * Analytics view becomes visible to force Chart.js to recalculate sizes.
  * ---------------------------------------------------------------------------
  */
 
@@ -163,3 +168,16 @@ export function renderAllCharts(expenses) {
   renderWeeklyTrendChart(expenses);
 }
 
+/**
+ * Forces every existing Chart.js instance to recalculate its canvas size.
+ * Must be called right after the Analytics view becomes visible (i.e. after
+ * its `display: none` is removed), otherwise charts created while hidden
+ * stay stuck at 0x0 dimensions and render blank.
+ */
+export function resizeAllCharts() {
+  Object.values(instances).forEach((chart) => {
+    if (chart && typeof chart.resize === "function") {
+      chart.resize();
+    }
+  });
+}
