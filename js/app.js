@@ -54,7 +54,7 @@ import { getRememberedEmail, setRememberedEmail, getLastView } from "./storage.j
 const state = {
   user: null,
   profile: null,
-  settings: { currency: "USD", monthlyBudget: 0, theme: "dark" },
+  settings: { currency: "INR", monthlyBudget: 0, theme: "dark" },
   expenses: [],
   unsubscribeExpenses: null,
 };
