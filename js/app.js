@@ -137,7 +137,6 @@ function renderEverything() {
   renderDashboard(state.expenses, state.settings.monthlyBudget, state.settings.currency);
   renderAllCharts(state.expenses);
   renderCalendar(state.expenses, onCalendarDayClick, state.settings.currency);
-  populateSearchCategoryFilter();
   applySearchFilters();
   initSettingsView({
     uid: state.user.uid,
@@ -409,18 +408,12 @@ function openExpenseModal(expenseId = null) {
 
 // ---------------------------------------------------------------------------
 // Search / Filter / Export
+//
+// NOTE: The category filter dropdown (#filter-category) is now a static
+// list of options written directly in index.html, so it always shows every
+// category regardless of how many transactions exist. We intentionally do
+// NOT rebuild it from the user's transaction data here.
 // ---------------------------------------------------------------------------
-function populateSearchCategoryFilter() {
-  const select = document.getElementById("filter-category");
-  if (!select) return;
-  const categories = [...new Set(state.expenses.map((e) => e.category))].sort();
-  const current = select.value;
-  select.innerHTML =
-    `<option value="">All Categories</option>` +
-    categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-  select.value = current;
-}
-
 function wireSearchView() {
   const debouncedFilter = debounce(applySearchFilters, 200);
   [
