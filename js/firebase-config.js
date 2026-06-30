@@ -22,15 +22,30 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
 // TODO: Replace with your own Firebase project credentials.
+
+
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID",
+  apiKey: "AIzaSyBBnSPp08-2hQZKJambvXzKHFvE2YwMQBc",
+  authDomain: "expense-tracker-fe4ae.firebaseapp.com",
+  projectId: "expense-tracker-fe4ae",
+  storageBucket: "expense-tracker-fe4ae.firebasestorage.app",
+  messagingSenderId: "589836930435",
+  appId: "1:589836930435:web:6e0d86ec2ad424e6d6fab6",
+  measurementId: "G-V1YFQX0T03"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
