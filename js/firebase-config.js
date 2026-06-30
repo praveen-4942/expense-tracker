@@ -4,9 +4,6 @@
  * Initializes the Firebase app and exports the SDK instances (Auth,
  * Firestore, Analytics, Google provider) used throughout Orb Expense
  * Tracker.
- *
- * SETUP: Replace the values below with your own Firebase project's config.
- * Firebase Console > Project Settings > General > Your apps > SDK setup.
  * ---------------------------------------------------------------------------
  */
 
@@ -21,18 +18,6 @@ import {
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
-// TODO: Replace with your own Firebase project credentials.
-
-
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyBBnSPp08-2hQZKJambvXzKHFvE2YwMQBc",
   authDomain: "expense-tracker-fe4ae.firebaseapp.com",
@@ -40,12 +25,8 @@ const firebaseConfig = {
   storageBucket: "expense-tracker-fe4ae.firebasestorage.app",
   messagingSenderId: "589836930435",
   appId: "1:589836930435:web:6e0d86ec2ad424e6d6fab6",
-  measurementId: "G-V1YFQX0T03"
+  measurementId: "G-V1YFQX0T03",
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -64,7 +45,7 @@ isSupported()
 
 /**
  * Switches Firebase Auth persistence based on the "Remember me" checkbox.
- * local  -> survives browser restarts (default, persistent login)
+ * local   -> survives browser restarts (default, persistent login)
  * session -> cleared when the browser tab/window closes
  */
 export async function setAuthPersistence(remember) {
