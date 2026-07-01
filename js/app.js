@@ -40,8 +40,8 @@ import {
 } from "./ui.js";
 import { showSuccess, showError, confirmDialog } from "./notifications.js";
 import { renderDashboard } from "./dashboard.js";
-import { renderCalendar, goToPreviousMonth, goToNextMonth, getCalendarState } from "./calendar.js";
-import { renderAllCharts } from "./charts.js";
+import { renderCalendar, goToPreviousMonth, goToNextMonth } from "./calendar.js";
+import { renderAllCharts, resizeAllCharts } from "./charts.js";
 import { initSettingsView } from "./settings.js";
 import { Analytics } from "./analytics.js";
 import { validateEmail, validatePassword, validatePasswordsMatch, validateName, validateExpense } from "./validation.js";
@@ -161,7 +161,6 @@ function onCalendarDayClick(date) {
     ? dayExpenses.map((tx) => renderTransactionRow(tx, state.settings.currency)).join("")
     : renderEmptyState("No transactions on this day.");
   detailPanel.classList.remove("hidden");
-  wireTransactionRowClicks(list);
 }
 
 // ---------------------------------------------------------------------------
@@ -272,6 +271,15 @@ function wireSidebarNav() {
     btn.addEventListener("click", () => {
       switchView(btn.dataset.view);
       Analytics.viewChange(btn.dataset.view);
+
+      // Charts are created while the analytics view may be hidden (display:none),
+      // causing them to render at 0x0. Resize them the moment the view is shown.
+      if (btn.dataset.view === "analytics-view") {
+        setTimeout(() => {
+          renderAllCharts(state.expenses);
+          resizeAllCharts();
+        }, 50);
+      }
     });
   });
 
@@ -289,8 +297,7 @@ function wireSidebarNav() {
 }
 
 function wireCalendarNav() {
-  // handled inside wireSidebarNav() to keep prev/next logic colocated;
-  // kept as a separate function for structural clarity per the spec.
+  // handled inside wireSidebarNav() to keep prev/next logic colocated.
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +319,9 @@ function wireExpenseModal() {
     const notes = document.getElementById("expense-notes").value.trim();
     const recurring = document.getElementById("expense-recurring").checked;
 
+    // Exclude from budget & spending totals (e.g. salary transfers, remittances)
+    const excludeFromBudget = document.getElementById("expense-exclude-budget").checked;
+
     const validationError = validateExpense({ amount, category, date });
     if (validationError) return showError(validationError);
 
@@ -324,6 +334,7 @@ function wireExpenseModal() {
       tags,
       notes,
       recurring,
+      excludeFromBudget,
     };
 
     try {
@@ -373,11 +384,6 @@ function wireExpenseModal() {
   });
 }
 
-function wireTransactionRowClicks() {
-  // Click handling is delegated globally in wireExpenseModal(); this
-  // function exists so callers can be explicit about intent at call sites.
-}
-
 function openExpenseModal(expenseId = null) {
   const form = document.getElementById("expense-form");
   form.reset();
@@ -385,6 +391,9 @@ function openExpenseModal(expenseId = null) {
   document.getElementById("delete-expense-btn").classList.add("hidden");
   document.getElementById("expense-date").value = toDateInputValue(new Date());
   document.getElementById("expense-modal-title").textContent = "Add Transaction";
+
+  // Always reset the exclude checkbox on a fresh modal open
+  document.getElementById("expense-exclude-budget").checked = false;
 
   if (expenseId) {
     const tx = state.expenses.find((e) => e.id === expenseId);
@@ -398,6 +407,8 @@ function openExpenseModal(expenseId = null) {
       document.getElementById("expense-tags").value = (tx.tags || []).join(", ");
       document.getElementById("expense-notes").value = tx.notes || "";
       document.getElementById("expense-recurring").checked = !!tx.recurring;
+      // Restore the exclude flag when editing an existing transaction
+      document.getElementById("expense-exclude-budget").checked = !!tx.excludeFromBudget;
       document.getElementById("expense-modal-title").textContent = "Edit Transaction";
       document.getElementById("delete-expense-btn").classList.remove("hidden");
     }
@@ -409,10 +420,9 @@ function openExpenseModal(expenseId = null) {
 // ---------------------------------------------------------------------------
 // Search / Filter / Export
 //
-// NOTE: The category filter dropdown (#filter-category) is now a static
-// list of options written directly in index.html, so it always shows every
-// category regardless of how many transactions exist. We intentionally do
-// NOT rebuild it from the user's transaction data here.
+// NOTE: The category filter dropdown (#filter-category) is a static list
+// written directly in index.html so it always shows every category regardless
+// of how many transactions exist. We do NOT rebuild it dynamically here.
 // ---------------------------------------------------------------------------
 function wireSearchView() {
   const debouncedFilter = debounce(applySearchFilters, 200);
@@ -482,7 +492,7 @@ function applySearchFilters() {
 
 function exportCsv() {
   const results = getFilteredExpenses();
-  const header = ["Date", "Type", "Category", "Amount", "Payment Method", "Tags", "Notes", "Recurring"];
+  const header = ["Date", "Type", "Category", "Amount", "Payment Method", "Tags", "Notes", "Recurring", "Excluded from Budget"];
   const rows = results.map((e) => [
     formatDate(e.date),
     e.type,
@@ -492,6 +502,7 @@ function exportCsv() {
     (e.tags || []).join("; "),
     (e.notes || "").replace(/,/g, ";"),
     e.recurring ? "Yes" : "No",
+    e.excludeFromBudget ? "Yes" : "No",
   ]);
   const csv = [header, ...rows].map((row) => row.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
@@ -506,15 +517,12 @@ function exportCsv() {
 }
 
 function exportPdf() {
-  // Lightweight PDF export via the browser's print-to-PDF pipeline, scoped
-  // to the current filtered results — avoids pulling in a heavy PDF library
-  // for a vanilla-JS app.
   const results = getFilteredExpenses();
   const win = window.open("", "_blank");
   const rowsHtml = results
     .map(
       (e) =>
-        `<tr><td>${formatDate(e.date)}</td><td>${e.type}</td><td>${escapeHtml(e.category)}</td><td>${formatCurrency(e.amount, state.settings.currency)}</td><td>${escapeHtml(e.notes || "")}</td></tr>`
+        `<tr><td>${formatDate(e.date)}</td><td>${e.type}</td><td>${escapeHtml(e.category)}</td><td>${formatCurrency(e.amount, state.settings.currency)}</td><td>${escapeHtml(e.notes || "")}</td><td>${e.excludeFromBudget ? "Yes" : "No"}</td></tr>`
     )
     .join("");
   win.document.write(`
@@ -528,7 +536,7 @@ function exportPdf() {
     </style></head><body>
     <h1>Orb Expense Report</h1>
     <p>Generated ${formatDate(new Date())}</p>
-    <table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Notes</th></tr></thead>
+    <table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Notes</th><th>Excl. Budget</th></tr></thead>
     <tbody>${rowsHtml}</tbody></table>
     </body></html>
   `);
