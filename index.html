@@ -195,29 +195,29 @@
       <div class="stats-grid">
         <div class="stat-card glass fade-in" style="--delay:0">
           <span class="stat-label">Monthly Spending</span>
-          <span id="stat-monthly" class="stat-value">$0.00</span>
+          <span id="stat-monthly" class="stat-value">₹0.00</span>
           <span class="stat-trend" id="stat-monthly-trend"></span>
         </div>
         <div class="stat-card glass fade-in" style="--delay:1">
           <span class="stat-label">Income</span>
-          <span id="stat-income" class="stat-value">$0.00</span>
+          <span id="stat-income" class="stat-value">₹0.00</span>
         </div>
         <div class="stat-card glass fade-in" style="--delay:2">
           <span class="stat-label">Savings</span>
-          <span id="stat-savings" class="stat-value">$0.00</span>
+          <span id="stat-savings" class="stat-value">₹0.00</span>
         </div>
         <div class="stat-card glass fade-in" style="--delay:3">
           <span class="stat-label">Budget Remaining</span>
-          <span id="stat-budget" class="stat-value">$0.00</span>
+          <span id="stat-budget" class="stat-value">₹0.00</span>
           <div class="progress-bar"><div id="budget-progress" class="progress-fill"></div></div>
         </div>
         <div class="stat-card glass fade-in" style="--delay:4">
           <span class="stat-label">Today's Spending</span>
-          <span id="stat-today" class="stat-value">$0.00</span>
+          <span id="stat-today" class="stat-value">₹0.00</span>
         </div>
         <div class="stat-card glass fade-in" style="--delay:5">
           <span class="stat-label">Weekly Spending</span>
-          <span id="stat-weekly" class="stat-value">$0.00</span>
+          <span id="stat-weekly" class="stat-value">₹0.00</span>
         </div>
       </div>
 
@@ -309,9 +309,7 @@
             <option value="Entertainment">Entertainment</option>
             <option value="Health">Health</option>
             <option value="Travel">Travel</option>
-            <option value="Salary">Salary</option>
             <option value="Other">Other</option>
-           
           </select>
           <select id="filter-type">
             <option value="">Income & Expense</option>
@@ -320,8 +318,8 @@
           </select>
           <input type="date" id="filter-date-from" />
           <input type="date" id="filter-date-to" />
-          <input type="number" id="filter-amount-min" placeholder="Min $" />
-          <input type="number" id="filter-amount-max" placeholder="Max $" />
+          <input type="number" id="filter-amount-min" placeholder="Min ₹" />
+          <input type="number" id="filter-amount-max" placeholder="Max ₹" />
           <select id="filter-sort">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -378,7 +376,7 @@
           </div>
           <div class="settings-row">
             <span>Monthly Budget</span>
-            <input type="number" id="monthly-budget-input" placeholder="e.g. 2000" />
+            <input type="number" id="monthly-budget-input" placeholder="e.g. 20000" />
           </div>
           <button id="save-preferences" class="btn btn-primary">Save Preferences</button>
         </div>
@@ -443,7 +441,6 @@
           <option value="Entertainment">Entertainment</option>
           <option value="Health">Health</option>
           <option value="Travel">Travel</option>
-          <option value="Salary">Salary</option>
           <option value="Other">Other</option>
         </select>
       </label>
@@ -459,6 +456,7 @@
           <option value="Cash">Cash</option>
           <option value="Card">Card</option>
           <option value="UPI">UPI</option>
+          <option value="Bank Transfer">Bank Transfer</option>
           <option value="Other">Other</option>
         </select>
       </label>
@@ -476,6 +474,13 @@
       <label class="checkbox">
         <input type="checkbox" id="expense-recurring" />
         <span>This is a recurring transaction</span>
+      </label>
+
+      <!-- Exclude from budget: for transfers, remittances, or any amount
+           you want to record but not count against your spending totals -->
+      <label class="checkbox" style="margin-top:8px;">
+        <input type="checkbox" id="expense-exclude-budget" />
+        <span>Exclude from budget &amp; spending totals</span>
       </label>
 
       <div class="modal-actions">
