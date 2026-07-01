@@ -21,7 +21,7 @@ export function initSettingsView({ uid, settings, profile, expenses, onAccountDe
   const darkBtn = document.getElementById("theme-dark-btn");
   const lightBtn = document.getElementById("theme-light-btn");
 
-  if (currencySelect) currencySelect.value = settings?.currency || "USD";
+  if (currencySelect) currencySelect.value = settings?.currency || "INR";
   if (budgetInput) budgetInput.value = settings?.monthlyBudget || "";
   if (nameInput) nameInput.value = profile?.name || "";
 
