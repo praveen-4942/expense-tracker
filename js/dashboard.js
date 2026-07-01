@@ -4,6 +4,10 @@
  * Computes and renders the dashboard view: stat cards (monthly spending,
  * income, savings, budget remaining, today's & weekly spending), the recent
  * transactions list, and the top categories breakdown.
+ *
+ * Transactions flagged with excludeFromBudget: true are recorded for history
+ * but excluded from all spending/budget calculations (e.g. salary transfers,
+ * remittances to family members).
  * ---------------------------------------------------------------------------
  */
 
@@ -20,8 +24,13 @@ export function computeStats(expenses, monthlyBudget = 0) {
   const weekStart = startOfWeek(now);
   const monthStart = startOfMonth(now);
 
-  const expensesOnly = expenses.filter((e) => e.type === "expense");
-  const incomeOnly = expenses.filter((e) => e.type === "income");
+  // Exclude transactions flagged as "exclude from budget" from all totals.
+  const expensesOnly = expenses.filter(
+    (e) => e.type === "expense" && !e.excludeFromBudget
+  );
+  const incomeOnly = expenses.filter(
+    (e) => e.type === "income" && !e.excludeFromBudget
+  );
 
   const monthlySpending = expensesOnly
     .filter((e) => inRange(e.date, monthStart))
@@ -41,7 +50,10 @@ export function computeStats(expenses, monthlyBudget = 0) {
 
   const savings = monthlyIncome - monthlySpending;
   const budgetRemaining = Number(monthlyBudget) - monthlySpending;
-  const budgetPercentUsed = monthlyBudget > 0 ? Math.min(100, (monthlySpending / monthlyBudget) * 100) : 0;
+  const budgetPercentUsed =
+    monthlyBudget > 0
+      ? Math.min(100, (monthlySpending / monthlyBudget) * 100)
+      : 0;
 
   return {
     monthlySpending,
@@ -54,7 +66,7 @@ export function computeStats(expenses, monthlyBudget = 0) {
   };
 }
 
-export function renderStats(stats, currency = "USD") {
+export function renderStats(stats, currency = "INR") {
   document.getElementById("stat-monthly").textContent = formatCurrency(stats.monthlySpending, currency);
   document.getElementById("stat-income").textContent = formatCurrency(stats.monthlyIncome, currency);
   document.getElementById("stat-savings").textContent = formatCurrency(stats.savings, currency);
@@ -64,7 +76,8 @@ export function renderStats(stats, currency = "USD") {
 
   const trendEl = document.getElementById("stat-monthly-trend");
   if (trendEl) {
-    trendEl.textContent = stats.savings >= 0 ? "On track this month" : "Spending exceeds income";
+    trendEl.textContent =
+      stats.savings >= 0 ? "On track this month" : "Spending exceeds income";
     trendEl.classList.toggle("negative", stats.savings < 0);
   }
 
@@ -80,30 +93,39 @@ export function renderStats(stats, currency = "USD") {
   }
 }
 
-export function renderRecentTransactions(expenses, currency = "USD") {
+export function renderRecentTransactions(expenses, currency = "INR") {
   const list = document.getElementById("recent-transactions");
   if (!list) return;
+  // Show all recent transactions including excluded ones — they're still
+  // part of the record, just not counted in budget totals.
   const recent = expenses.slice(0, 8);
   list.innerHTML = recent.length
     ? recent.map((tx) => renderTransactionRow(tx, currency)).join("")
     : renderEmptyState("No transactions yet — add your first one!");
 }
 
-export function renderTopCategories(expenses, currency = "USD") {
+export function renderTopCategories(expenses, currency = "INR") {
   const list = document.getElementById("top-categories");
   if (!list) return;
 
-  const expensesOnly = expenses.filter((e) => e.type === "expense");
+  // Top categories only counts real spending, not excluded transfers.
+  const expensesOnly = expenses.filter(
+    (e) => e.type === "expense" && !e.excludeFromBudget
+  );
   const totals = {};
   expensesOnly.forEach((e) => {
     totals[e.category] = (totals[e.category] || 0) + Number(e.amount);
   });
 
-  const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const sorted = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
   const max = sorted.length ? sorted[0][1] : 1;
 
   if (!sorted.length) {
-    list.innerHTML = renderEmptyState("Categories will appear once you add expenses.");
+    list.innerHTML = renderEmptyState(
+      "Categories will appear once you add expenses."
+    );
     return;
   }
 
