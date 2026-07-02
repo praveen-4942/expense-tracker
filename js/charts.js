@@ -2,15 +2,11 @@
  * charts.js
  * ---------------------------------------------------------------------------
  * All Chart.js chart creation/updating lives here. Charts are created once
- * and updated in place on subsequent renders (rather than destroyed and
- * recreated) so Chart.js's built-in animations play on every data change.
- * Requires Chart.js to be loaded globally via the CDN <script> tag in
- * index.html (window.Chart).
+ * and updated in place on subsequent renders so Chart.js animations play on
+ * every data change. Requires Chart.js loaded globally via CDN (window.Chart).
  *
- * NOTE: Charts are initially created while the Analytics view may still be
- * hidden (display: none), which means their canvases report 0x0 dimensions
- * at creation time and render blank. Call resizeAllCharts() right after the
- * Analytics view becomes visible to force Chart.js to recalculate sizes.
+ * Transactions flagged with excludeFromBudget: true are excluded from all
+ * chart calculations — consistent with dashboard stat behaviour.
  * ---------------------------------------------------------------------------
  */
 
@@ -48,8 +44,13 @@ function getOrCreateChart(id, config) {
   return instances[id];
 }
 
+// Filter helper — strips excluded transactions before any chart calculation
+function tracked(expenses) {
+  return expenses.filter((e) => !e.excludeFromBudget);
+}
+
 export function renderCategoryChart(expenses) {
-  const expensesOnly = expenses.filter((e) => e.type === "expense");
+  const expensesOnly = tracked(expenses).filter((e) => e.type === "expense");
   const totals = {};
   expensesOnly.forEach((e) => {
     totals[e.category] = (totals[e.category] || 0) + Number(e.amount);
@@ -66,8 +67,13 @@ export function renderCategoryChart(expenses) {
 }
 
 export function renderIncomeExpenseChart(expenses) {
-  const income = expenses.filter((e) => e.type === "income").reduce((s, e) => s + Number(e.amount), 0);
-  const expense = expenses.filter((e) => e.type === "expense").reduce((s, e) => s + Number(e.amount), 0);
+  const filtered = tracked(expenses);
+  const income = filtered
+    .filter((e) => e.type === "income")
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const expense = filtered
+    .filter((e) => e.type === "expense")
+    .reduce((s, e) => s + Number(e.amount), 0);
 
   getOrCreateChart("chart-income-expense", {
     type: "bar",
@@ -93,17 +99,27 @@ export function renderIncomeExpenseChart(expenses) {
 }
 
 export function renderMonthlyChart(expenses) {
+  const filtered = tracked(expenses).filter((e) => e.type === "expense");
   const now = new Date();
   const months = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push(d);
   }
-  const labels = months.map((d) => d.toLocaleDateString(undefined, { month: "short" }));
+  const labels = months.map((d) =>
+    d.toLocaleDateString(undefined, { month: "short" })
+  );
   const data = months.map((monthStart) => {
-    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
-    return expenses
-      .filter((e) => e.type === "expense" && new Date(e.date) >= monthStart && new Date(e.date) < monthEnd)
+    const monthEnd = new Date(
+      monthStart.getFullYear(),
+      monthStart.getMonth() + 1,
+      1
+    );
+    return filtered
+      .filter(
+        (e) =>
+          new Date(e.date) >= monthStart && new Date(e.date) < monthEnd
+      )
       .reduce((s, e) => s + Number(e.amount), 0);
   });
 
@@ -111,7 +127,9 @@ export function renderMonthlyChart(expenses) {
     type: "bar",
     data: {
       labels,
-      datasets: [{ data, backgroundColor: "#5b8cff", borderRadius: 8, maxBarThickness: 36 }],
+      datasets: [
+        { data, backgroundColor: "#5b8cff", borderRadius: 8, maxBarThickness: 36 },
+      ],
     },
     options: baseOptions({
       plugins: { legend: { display: false } },
@@ -124,6 +142,7 @@ export function renderMonthlyChart(expenses) {
 }
 
 export function renderWeeklyTrendChart(expenses) {
+  const filtered = tracked(expenses).filter((e) => e.type === "expense");
   const weekStart = startOfWeek(new Date());
   const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const data = labels.map((_, i) => {
@@ -131,8 +150,8 @@ export function renderWeeklyTrendChart(expenses) {
     day.setDate(day.getDate() + i);
     const next = new Date(day);
     next.setDate(next.getDate() + 1);
-    return expenses
-      .filter((e) => e.type === "expense" && new Date(e.date) >= day && new Date(e.date) < next)
+    return filtered
+      .filter((e) => new Date(e.date) >= day && new Date(e.date) < next)
       .reduce((s, e) => s + Number(e.amount), 0);
   });
 
@@ -170,9 +189,8 @@ export function renderAllCharts(expenses) {
 
 /**
  * Forces every existing Chart.js instance to recalculate its canvas size.
- * Must be called right after the Analytics view becomes visible (i.e. after
- * its `display: none` is removed), otherwise charts created while hidden
- * stay stuck at 0x0 dimensions and render blank.
+ * Call this right after the Analytics view becomes visible to fix blank
+ * charts caused by 0x0 canvas dimensions while the view was hidden.
  */
 export function resizeAllCharts() {
   Object.values(instances).forEach((chart) => {
